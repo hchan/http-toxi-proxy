@@ -1,4 +1,4 @@
-proxy.port: 8080
+proxy.port: 28080
 
 logging.config: classpath:config/logback.xml
 logging.level.io.netty.handler.logging.LoggingHandler: DEBUG

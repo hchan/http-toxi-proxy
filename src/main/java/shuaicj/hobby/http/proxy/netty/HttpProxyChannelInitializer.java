@@ -24,7 +24,7 @@ public class HttpProxyChannelInitializer extends ChannelInitializer<SocketChanne
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
         ch.pipeline().addLast(
-                new LoggingHandler(LogLevel.DEBUG),
+                null,
                 appCtx.getBean(HttpProxyClientHandler.class, "task-" + taskCounter.getAndIncrement())
         );
     }

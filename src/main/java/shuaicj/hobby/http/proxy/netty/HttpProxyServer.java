@@ -11,6 +11,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,11 +40,11 @@ public class HttpProxyServer {
                 ServerBootstrap b = new ServerBootstrap();
                 b.group(bossGroup, workerGroup)
                         .channel(NioServerSocketChannel.class)
-                        .handler(new LoggingHandler(LogLevel.DEBUG))
+                        //.handler(new LoggingHandler(LogLevel.ERROR))
                         .childHandler(channelInitializer)
                         .bind(port).sync().channel().closeFuture().sync();
             } catch (InterruptedException e) {
-                logger.error("shit happens", e);
+                logger.error("doh!", e);
             } finally {
                 bossGroup.shutdownGracefully();
                 workerGroup.shutdownGracefully();
