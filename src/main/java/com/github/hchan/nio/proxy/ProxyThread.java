@@ -3,21 +3,15 @@ package com.github.hchan.nio.proxy;
 import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Date;
 
 import lombok.extern.slf4j.Slf4j;
 import rawhttp.core.RawHttp;
 import rawhttp.core.RawHttpRequest;
-import rawhttp.core.client.TcpRawHttpClient;
 
 @Slf4j
 public class ProxyThread extends Thread {
-	private static ArrayList<Socket> sockets = new ArrayList();
-	public ExecutorService executor = Executors.newFixedThreadPool(500);
 
 	private SocketChannel serverSocketChannel;
 	private String msg;
@@ -64,10 +58,13 @@ public class ProxyThread extends Thread {
 				//logger.info(new String(tempBytes, 0, readBytes));
 			}
 			serverSocketChannel.close();
-			SocketCloseThread socketCloseThread = new SocketCloseThread(socket);
-			executor.execute(socketCloseThread);
+			SocketCreatedTimeBean socketCreatedTimeBean = new SocketCreatedTimeBean();
+			socketCreatedTimeBean.setSocket(socket);
+			socketCreatedTimeBean.setCreatedDate(new Date());
+			SocketCloseThread.safeList.add(socketCreatedTimeBean);
 			this.socket = null;
 			this.serverSocketChannel = null;
+			
 		} catch (Exception e) {
 			logger.error("", e);
 		} finally {

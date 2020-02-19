@@ -17,9 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings("unused")
 @Slf4j
 public class Server {
-	
+	public static int MAX_THREAD_COUNT = 300;
+
 	public static void main(String[] args) throws IOException {
-		ExecutorService executor = Executors.newFixedThreadPool(500);
+
+		ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD_COUNT);
 		// Selector: multiplexor of SelectableChannel objects
 		Selector selector = Selector.open(); // selector is open here
 
@@ -37,6 +39,10 @@ public class Server {
 		int ops = crunchifySocket.validOps();
 		SelectionKey selectKy = crunchifySocket.register(selector, ops, null);
 
+		
+		SocketCloseThread socketCloseThread = new SocketCloseThread();
+		socketCloseThread.start();
+		
 		// Infinite loop..
 		// Keep server running
 		while (true) {
