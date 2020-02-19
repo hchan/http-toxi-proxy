@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,14 +19,14 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class SocketCloseThread extends Thread {
-	public static List<SocketCreatedTimeBean> safeList = Collections.synchronizedList(new ArrayList<>());
+	public static List<SocketCreatedTimeBean> safeList = new CopyOnWriteArrayList<SocketCreatedTimeBean>();
 	public static int GRACE_TIME_MILLIS = 800; // holds socket for this long before evicting
 
 	@Override
 	public void run() {
 		while (true) {
 			try {
-				Thread.sleep(2);
+				Thread.sleep(1);
 				Iterator<SocketCreatedTimeBean> iterator = safeList.iterator();
 				synchronized (safeList) {
 					while (iterator.hasNext()) {
@@ -34,7 +35,7 @@ public class SocketCloseThread extends Thread {
 						Date nowMinusGrace = new Date(new Date().getTime() - GRACE_TIME_MILLIS);
 						Socket socket = next.getSocket();
 						SocketChannel socketChannel = next.getSocketChannel();
-						socketChannel.write(byteBuffer);
+						//socketChannel.write(byteBuffer);
 						socketChannel.close();
 						Date createdDate = next.getCreatedDate();
 						if (nowMinusGrace.after(createdDate)) {
