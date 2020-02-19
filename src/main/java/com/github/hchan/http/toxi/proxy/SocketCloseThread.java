@@ -1,4 +1,4 @@
-package com.github.hchan.nio.proxy;
+package com.github.hchan.http.toxi.proxy;
 
 import java.io.InputStream;
 import java.net.Socket;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SocketCloseThread extends Thread {
 	public static List<SocketCreatedTimeBean> safeList = Collections.synchronizedList(new ArrayList<>());
-	public static int GRACE_TIME_MILLIS = 1000; // holds socket for this long before evicting
+	public static int GRACE_TIME_MILLIS = 800; // holds socket for this long before evicting
 
 	@Override
 	public void run() {
@@ -29,23 +29,25 @@ public class SocketCloseThread extends Thread {
 				Iterator<SocketCreatedTimeBean> iterator = safeList.iterator();
 				synchronized (safeList) {
 					while (iterator.hasNext()) {
+						ByteBuffer byteBuffer = ByteBuffer.wrap("Hello World".getBytes());
 						SocketCreatedTimeBean next = iterator.next();
 						Date nowMinusGrace = new Date(new Date().getTime() - GRACE_TIME_MILLIS);
+						Socket socket = next.getSocket();
+						SocketChannel socketChannel = next.getSocketChannel();
+						socketChannel.write(byteBuffer);
+						socketChannel.close();
 						Date createdDate = next.getCreatedDate();
 						if (nowMinusGrace.after(createdDate)) {
-							Socket socket = next.getSocket();
-							SocketChannel socketChannel = next.getSocketChannel();
-							InputStream dataInputStream = socket.getInputStream();
+							InputStream inputStream = socket.getInputStream();
 							byte[] tempBytes = new byte[1024];
 							int readBytes = tempBytes.length;
-							ByteBuffer byteBuffer = null;
+							
 							while ( readBytes == tempBytes.length) {
-								readBytes = dataInputStream.read(tempBytes);
+								readBytes = inputStream.read(tempBytes);
 								byteBuffer = ByteBuffer.wrap(tempBytes, 0, readBytes);
-								socketChannel.write(byteBuffer);
+								//socketChannel.write(byteBuffer);
 								//logger.info(new String(tempBytes, 0, readBytes));
 							}
-							socketChannel.close();
 							socket.close();
 							iterator.remove();
 						}

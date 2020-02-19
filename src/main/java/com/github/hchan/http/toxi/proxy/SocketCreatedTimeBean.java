@@ -1,4 +1,4 @@
-package com.github.hchan.nio.proxy;
+package com.github.hchan.http.toxi.proxy;
 
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
