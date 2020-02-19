@@ -9,7 +9,11 @@ import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import rawhttp.core.RawHttp;
 import rawhttp.core.RawHttpRequest;
-
+/**
+ * @author henry.chan
+ * 
+ * Thread for communicating with underlying socket
+ */
 @Slf4j
 public class ProxyThread extends Thread {
 

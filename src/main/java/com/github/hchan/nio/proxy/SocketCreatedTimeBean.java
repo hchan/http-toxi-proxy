@@ -5,7 +5,11 @@ import java.util.Date;
 
 import lombok.Getter;
 import lombok.Setter;
-
+/**
+ * 
+ * @author henry.chan
+ * Just a simple bean
+ */
 @Getter @Setter
 public class SocketCreatedTimeBean {
 	private Socket socket;

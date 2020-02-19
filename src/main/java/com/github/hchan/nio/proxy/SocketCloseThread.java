@@ -7,7 +7,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
-
+/**
+ * 
+ * @author henry.chan
+ * Holds sockets and periodically frees them ... toxicity ;)
+ */
 @Slf4j
 public class SocketCloseThread extends Thread {
 	public static List<SocketCreatedTimeBean> safeList = Collections.synchronizedList(new ArrayList<>());

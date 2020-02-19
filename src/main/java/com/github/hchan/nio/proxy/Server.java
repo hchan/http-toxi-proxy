@@ -13,12 +13,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import lombok.extern.slf4j.Slf4j;
-
+/**
+ * 
+ * @author henry.chan
+ * Starting point
+ */
 @SuppressWarnings("unused")
 @Slf4j
 public class Server {
 	public static int MAX_THREAD_COUNT = 300;
-
+	public static int SERVER_PORT = 28080;
 	public static void main(String[] args) throws IOException {
 
 		ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD_COUNT);
@@ -27,7 +31,7 @@ public class Server {
 
 		// ServerSocketChannel: selectable channel for stream-oriented listening sockets
 		ServerSocketChannel crunchifySocket = ServerSocketChannel.open();
-		InetSocketAddress crunchifyAddr = new InetSocketAddress("localhost", 28080);
+		InetSocketAddress crunchifyAddr = new InetSocketAddress("localhost", SERVER_PORT);
 
 		// Binds the channel's socket to a local address and configures the socket to
 		// listen for connections
@@ -53,23 +57,23 @@ public class Server {
 			selector.select();
 
 			// token representing the registration of a SelectableChannel with a Selector
-			Set<SelectionKey> crunchifyKeys = selector.selectedKeys();
-			Iterator<SelectionKey> crunchifyIterator = crunchifyKeys.iterator();
+			Set<SelectionKey> selectionKeySet = selector.selectedKeys();
+			Iterator<SelectionKey> selectionKeyIterator = selectionKeySet.iterator();
 
-			while (crunchifyIterator.hasNext()) {
-				SelectionKey myKey = crunchifyIterator.next();
+			while (selectionKeyIterator.hasNext()) {
+				SelectionKey myKey = selectionKeyIterator.next();
 				try {
 					// Tests whether this key's channel is ready to accept a new socket connection
 					if (myKey.isAcceptable()) {
 						try {
-							SocketChannel crunchifyClient = crunchifySocket.accept();
+							SocketChannel socketChannel = crunchifySocket.accept();
 		
 							// Adjusts this channel's blocking mode to false
-							crunchifyClient.configureBlocking(false);
+							socketChannel.configureBlocking(false);
 		
 							// Operation-set bit for read operations
-							crunchifyClient.register(selector, SelectionKey.OP_READ);
-							logger.info("Connection Accepted: " + crunchifyClient.getLocalAddress() + "\n");
+							socketChannel.register(selector, SelectionKey.OP_READ);
+							logger.info("Connection Accepted: " + socketChannel.getLocalAddress() + "\n");
 						} catch (Exception e) {
 							logger.error("", e);
 						}
@@ -93,7 +97,7 @@ public class Server {
 				} catch (Exception e) {
 					logger.error("", e);
 				}
-				crunchifyIterator.remove();
+				selectionKeyIterator.remove();
 			}
 		}
 	}
