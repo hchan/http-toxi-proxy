@@ -7,30 +7,30 @@ import java.util.Iterator;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+
 /**
  * 
- * @author henry.chan
- * Holds sockets and periodically frees them ... toxicity ;)
+ * @author henry.chan Holds sockets and periodically frees them ... toxicity ;)
  */
 @Slf4j
 public class SocketCloseThread extends Thread {
 	public static List<SocketCreatedTimeBean> safeList = Collections.synchronizedList(new ArrayList<>());
+	public static int GRACE_TIME_MILLIS = 500;
 
 	@Override
 	public void run() {
 		while (true) {
 			try {
-				int graceTimeMillis = 500;
-				Thread.sleep(graceTimeMillis);
+				Thread.sleep(GRACE_TIME_MILLIS);
 				Iterator<SocketCreatedTimeBean> iterator = safeList.iterator();
 
 				synchronized (safeList) {
 					while (iterator.hasNext()) {
 						SocketCreatedTimeBean next = iterator.next();
-						Date nowMinusGrace = new Date(new Date().getTime() - graceTimeMillis);
-						
+						Date nowMinusGrace = new Date(new Date().getTime() - GRACE_TIME_MILLIS);
+
 						Date createdDate = next.getCreatedDate();
-						
+
 						if (nowMinusGrace.after(createdDate)) {
 							next.getSocket().close();
 							iterator.remove();

@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
  * 
  * @author henry.chan
  * Starting point
+ * To monitor traffic :
+ * lsof -nP -i4TCP:8080 | grep "\->127.0.0.1:8080" | wc -l
  */
 @SuppressWarnings("unused")
 @Slf4j
