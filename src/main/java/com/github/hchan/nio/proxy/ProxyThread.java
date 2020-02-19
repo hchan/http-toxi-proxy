@@ -1,47 +1,57 @@
 package com.github.hchan.nio.proxy;
 
-import java.io.DataInputStream;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import lombok.extern.slf4j.Slf4j;
 import rawhttp.core.RawHttp;
 import rawhttp.core.RawHttpRequest;
-import rawhttp.core.RawHttpResponse;
 import rawhttp.core.client.TcpRawHttpClient;
 
 @Slf4j
 public class ProxyThread extends Thread {
-	private InetSocketAddress inetSocketAddress;
+	private static ArrayList<Socket> sockets = new ArrayList();
+	public ExecutorService executor = Executors.newFixedThreadPool(500);
+
 	private SocketChannel serverSocketChannel;
 	private String msg;
-	private SelectionKey selectionKey;
+	private Socket socket = null;
 
-	public ProxyThread(InetSocketAddress inetSocketAddress, SocketChannel serverSocketChannel, String msg, SelectionKey selectionKey) {
-		this.inetSocketAddress = inetSocketAddress;
+	public ProxyThread(SocketChannel serverSocketChannel, String msg) {
 		this.serverSocketChannel = serverSocketChannel;
 		this.msg = msg;
-		this.selectionKey = selectionKey;
 	}
-
-	@Override
-	public void run() {
+	
+	
+	private void writeMsgToSocket() throws Exception {
 		try {
-			//TcpRawHttpClient client = new TcpRawHttpClient();
 			RawHttp http = new RawHttp() ;
 			logger.info(msg);
 			RawHttpRequest request = http.parseRequest(msg);
 			//RawHttpResponse<?> response = client.send(request);
 			String hostLine = request.getHeaders().getFirst("Host").get();
 			String[] hostAndPort = hostLine.split(":");
-			Socket socket = new Socket(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+			socket = new Socket(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+			socket.setKeepAlive(true);
 			request.writeTo(socket.getOutputStream());
-			Thread.sleep(700);
+			//sockets.add(socket);
+		} catch (Exception e) {
+			logger.error("", e);
+			throw e;
+		}
+	}
+
+	@Override
+	public void run() {
+		try {
+			writeMsgToSocket();
+			//Thread.sleep(700);
 			
 			InputStream dataInputStream = socket.getInputStream();
 			byte[] tempBytes = new byte[1024];
@@ -51,37 +61,40 @@ public class ProxyThread extends Thread {
 				readBytes = dataInputStream.read(tempBytes);
 				byteBuffer = ByteBuffer.wrap(tempBytes, 0, readBytes);
 				serverSocketChannel.write(byteBuffer);
+				//logger.info(new String(tempBytes, 0, readBytes));
 			}
-
-			/*
-			clientSocketChannel.configureBlocking(false);
-			byte[] message = new String(msg).getBytes();
-			ByteBuffer buffer = ByteBuffer.wrap(message);
-			clientSocketChannel.write(buffer);
-			ByteBuffer byteBuffer = ByteBuffer.allocate(10000000);
-			clientSocketChannel.read(byteBuffer);
-			String result = new String(byteBuffer.array()).trim();
-			clientSocketChannel.close();
-			serverSocketChannel.write(byteBuffer);
-			*/
-			//selectionKey.cancel();
-
-			
-			//dataInputStream.close();
-			//socket.getOutputStream().close();
 			serverSocketChannel.close();
-			//socket.close();
-			
-			
-			this.inetSocketAddress = null;
+			SocketCloseThread socketCloseThread = new SocketCloseThread(socket);
+			executor.execute(socketCloseThread);
+			this.socket = null;
 			this.serverSocketChannel = null;
-			this.msg = null;
-			this.selectionKey = null;
-			
 		} catch (Exception e) {
 			logger.error("", e);
 		} finally {
-			logger.info("FINALLY");
 		}
+	}
+	
+	public static void main(String[] args) throws Exception {
+		ProxyThread proxyThread = new ProxyThread(null, "POST http://localhost:8080/gwtRequest HTTP/1.1\n" + 
+				"Cookie: JSESSIONID=ufiTOYYptWkzN-SFAcyhkOSTXTSjhteE5UDMUuqN.c02yr22slvcg\n" + 
+				"Host: localhost:8080\n" + 
+				"accept: */*\n" + 
+				"content-type: application/json; charset=UTF-8\n" + 
+				"content-length: 375\n" + 
+				"\n" + 
+				"{ \"MYRAND\" :73327407,\"F\":\"com.indicee.gwt.assetbrowser.shared.AssetBrowserRequestFactory\",\"I\":[{\"O\":\"5Wnp8jhWSgpH7BhYIEC_Cy16oBQ=\",\"P\":[null,null,{\"R\":\"1\",\"C\":6,\"T\":\"mD8GxHNcgZl_gt$AmX6pz_3Dn0s=\"},null,[],[\"NAME\",\"IQN\"],[true,true],false,0,37,false,false,true]}],\"O\":[{\"O\":\"PERSIST\",\"R\":\"1\",\"C\":6,\"T\":\"mD8GxHNcgZl_gt$AmX6pz_3Dn0s=\",\"P\":{\"id\":null,\"name\":null,\"type\":\"ALL\"}}]}");
+		proxyThread.writeMsgToSocket();
+		byte[] tempBytes = new byte[1024];
+		int readBytes = tempBytes.length;
+		ByteBuffer byteBuffer = null;
+		InputStream dataInputStream = proxyThread.socket.getInputStream();
+
+		while ( readBytes == tempBytes.length) {
+			readBytes = dataInputStream.read(tempBytes);
+			byteBuffer = ByteBuffer.wrap(tempBytes, 0, readBytes);
+			logger.info(new String(tempBytes, 0, readBytes));
+		}
+		
+		Thread.sleep(10000);
 	}
 }

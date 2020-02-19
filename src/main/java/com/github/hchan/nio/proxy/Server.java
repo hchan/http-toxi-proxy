@@ -9,14 +9,17 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings("unused")
 @Slf4j
 public class Server {
+	
 	public static void main(String[] args) throws IOException {
-
+		ExecutorService executor = Executors.newFixedThreadPool(500);
 		// Selector: multiplexor of SelectableChannel objects
 		Selector selector = Selector.open(); // selector is open here
 
@@ -68,32 +71,18 @@ public class Server {
 					} else if (myKey.isReadable()) {
 						try {
 							SocketChannel serverSocketChannel = (SocketChannel) myKey.channel();
-							ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
+							ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
 							serverSocketChannel.read(byteBuffer);
 							String result = new String(byteBuffer.array()).trim();
-		
 							logger.info("Message received: " + result);
 							byteBuffer.clear();
-							/*
-							if (result.indexOf("Host: ") != -1) {
-								String beginsWithHost = result.substring(result.indexOf("Host: "));
-								int newlineAfterHostIndex = beginsWithHost.indexOf("\r");
-								String hostLine = beginsWithHost.substring(0, newlineAfterHostIndex);
-								hostLine = hostLine.replace("Host: ", "");
-								String[] hostAndPort = hostLine.split(":");
-								InetSocketAddress inetSocketAddress = new InetSocketAddress(hostAndPort[0], 
-										Integer.parseInt(hostAndPort[1]));
-								ProxyThread proxyThread = new ProxyThread(inetSocketAddress, serverSocketChannel, result, myKey);
-								proxyThread.start();
-							}*/
-							ProxyThread proxyThread = new ProxyThread(null, serverSocketChannel, result, myKey);
-							proxyThread.start();
+							myKey.cancel();
+							ProxyThread proxyThread = new ProxyThread(serverSocketChannel, result);
+							executor.execute(proxyThread);
 						} catch (Exception e) {
 							logger.error("", e);
 						} finally {
-							myKey.cancel();
-						}
-						
+						}	
 					} 
 				} catch (Exception e) {
 					logger.error("", e);
