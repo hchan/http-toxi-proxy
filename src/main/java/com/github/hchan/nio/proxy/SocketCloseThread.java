@@ -15,33 +15,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SocketCloseThread extends Thread {
 	public static List<SocketCreatedTimeBean> safeList = Collections.synchronizedList(new ArrayList<>());
-	public static int GRACE_TIME_MILLIS = 500;
+	public static int GRACE_TIME_MILLIS = 500; // holds socket for this long before evicting
 
 	@Override
 	public void run() {
 		while (true) {
 			try {
-				Thread.sleep(GRACE_TIME_MILLIS);
+				Thread.sleep(2);
 				Iterator<SocketCreatedTimeBean> iterator = safeList.iterator();
-
 				synchronized (safeList) {
 					while (iterator.hasNext()) {
 						SocketCreatedTimeBean next = iterator.next();
 						Date nowMinusGrace = new Date(new Date().getTime() - GRACE_TIME_MILLIS);
-
 						Date createdDate = next.getCreatedDate();
-
 						if (nowMinusGrace.after(createdDate)) {
 							next.getSocket().close();
 							iterator.remove();
 						}
 					}
 				}
-
 			} catch (Exception e) {
 				logger.error("", e);
 			}
 		}
 	}
-
 }

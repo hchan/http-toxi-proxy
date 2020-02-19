@@ -32,27 +32,24 @@ public class Server {
 		Selector selector = Selector.open(); // selector is open here
 
 		// ServerSocketChannel: selectable channel for stream-oriented listening sockets
-		ServerSocketChannel crunchifySocket = ServerSocketChannel.open();
-		InetSocketAddress crunchifyAddr = new InetSocketAddress("localhost", SERVER_PORT);
+		ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+		InetSocketAddress inetSocketAddress = new InetSocketAddress("localhost", SERVER_PORT);
 
 		// Binds the channel's socket to a local address and configures the socket to
 		// listen for connections
-		crunchifySocket.bind(crunchifyAddr);
+		serverSocketChannel.bind(inetSocketAddress);
 
 		// Adjusts this channel's blocking mode.
-		crunchifySocket.configureBlocking(false);
+		serverSocketChannel.configureBlocking(false);
 
-		int ops = crunchifySocket.validOps();
-		SelectionKey selectKy = crunchifySocket.register(selector, ops, null);
-
-		
+		int ops = serverSocketChannel.validOps();
+		SelectionKey selectKy = serverSocketChannel.register(selector, ops, null);
 		SocketCloseThread socketCloseThread = new SocketCloseThread();
 		socketCloseThread.start();
 		
 		// Infinite loop..
 		// Keep server running
 		while (true) {
-
 			logger.info("i'm a server and i'm waiting for new connection and buffer select...");
 			// Selects a set of keys whose corresponding channels are ready for I/O
 			// operations
@@ -68,7 +65,7 @@ public class Server {
 					// Tests whether this key's channel is ready to accept a new socket connection
 					if (myKey.isAcceptable()) {
 						try {
-							SocketChannel socketChannel = crunchifySocket.accept();
+							SocketChannel socketChannel = serverSocketChannel.accept();
 		
 							// Adjusts this channel's blocking mode to false
 							socketChannel.configureBlocking(false);
@@ -82,14 +79,14 @@ public class Server {
 						// Tests whether this key's channel is ready for reading
 					} else if (myKey.isReadable()) {
 						try {
-							SocketChannel serverSocketChannel = (SocketChannel) myKey.channel();
+							SocketChannel socketChannel = (SocketChannel) myKey.channel();
 							ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-							serverSocketChannel.read(byteBuffer);
+							socketChannel.read(byteBuffer);
 							String result = new String(byteBuffer.array()).trim();
 							logger.info("Message received: " + result);
 							byteBuffer.clear();
 							myKey.cancel();
-							ProxyThread proxyThread = new ProxyThread(serverSocketChannel, result);
+							ProxyThread proxyThread = new ProxyThread(socketChannel, result);
 							executor.execute(proxyThread);
 						} catch (Exception e) {
 							logger.error("", e);

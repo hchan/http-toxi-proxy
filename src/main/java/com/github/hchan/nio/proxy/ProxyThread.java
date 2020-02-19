@@ -12,26 +12,26 @@ import rawhttp.core.RawHttpRequest;
 /**
  * @author henry.chan
  * 
- * Thread for communicating with underlying socket
+ * Thread for communicating with underlying socket in proxy
  */
 @Slf4j
 public class ProxyThread extends Thread {
 
 	private SocketChannel serverSocketChannel;
-	private String msg;
+	private String requestMsg;
 	private Socket socket = null;
 
-	public ProxyThread(SocketChannel serverSocketChannel, String msg) {
+	public ProxyThread(SocketChannel serverSocketChannel, String requestMsg) {
 		this.serverSocketChannel = serverSocketChannel;
-		this.msg = msg;
+		this.requestMsg = requestMsg;
 	}
 	
 	
 	private void writeMsgToSocket() throws Exception {
 		try {
 			RawHttp http = new RawHttp() ;
-			logger.info(msg);
-			RawHttpRequest request = http.parseRequest(msg);
+			logger.info(requestMsg);
+			RawHttpRequest request = http.parseRequest(requestMsg);
 			//RawHttpResponse<?> response = client.send(request);
 			String hostLine = request.getHeaders().getFirst("Host").get();
 			String[] hostAndPort = hostLine.split(":");
@@ -49,8 +49,6 @@ public class ProxyThread extends Thread {
 	public void run() {
 		try {
 			writeMsgToSocket();
-			//Thread.sleep(700);
-			
 			InputStream dataInputStream = socket.getInputStream();
 			byte[] tempBytes = new byte[1024];
 			int readBytes = tempBytes.length;
@@ -87,12 +85,10 @@ public class ProxyThread extends Thread {
 		proxyThread.writeMsgToSocket();
 		byte[] tempBytes = new byte[1024];
 		int readBytes = tempBytes.length;
-		ByteBuffer byteBuffer = null;
 		InputStream dataInputStream = proxyThread.socket.getInputStream();
 
 		while ( readBytes == tempBytes.length) {
 			readBytes = dataInputStream.read(tempBytes);
-			byteBuffer = ByteBuffer.wrap(tempBytes, 0, readBytes);
 			logger.info(new String(tempBytes, 0, readBytes));
 		}
 		
