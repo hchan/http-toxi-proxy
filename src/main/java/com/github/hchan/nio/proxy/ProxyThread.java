@@ -17,12 +17,12 @@ import rawhttp.core.RawHttpRequest;
 @Slf4j
 public class ProxyThread extends Thread {
 
-	private SocketChannel serverSocketChannel;
+	private SocketChannel socketChannel = null;
 	private String requestMsg;
 	private Socket socket = null;
 
-	public ProxyThread(SocketChannel serverSocketChannel, String requestMsg) {
-		this.serverSocketChannel = serverSocketChannel;
+	public ProxyThread(SocketChannel socketChannel, String requestMsg) {
+		this.socketChannel = socketChannel;
 		this.requestMsg = requestMsg;
 	}
 	
@@ -38,6 +38,11 @@ public class ProxyThread extends Thread {
 			socket = new Socket(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
 			socket.setKeepAlive(true);
 			request.writeTo(socket.getOutputStream());
+			SocketCreatedTimeBean socketCreatedTimeBean = new SocketCreatedTimeBean();
+			socketCreatedTimeBean.setSocket(socket);
+			socketCreatedTimeBean.setCreatedDate(new Date());
+			socketCreatedTimeBean.setSocketChannel(socketChannel);
+			SocketCloseThread.safeList.add(socketCreatedTimeBean);
 			//sockets.add(socket);
 		} catch (Exception e) {
 			logger.error("", e);
@@ -49,23 +54,9 @@ public class ProxyThread extends Thread {
 	public void run() {
 		try {
 			writeMsgToSocket();
-			InputStream dataInputStream = socket.getInputStream();
-			byte[] tempBytes = new byte[1024];
-			int readBytes = tempBytes.length;
-			ByteBuffer byteBuffer = null;
-			while ( readBytes == tempBytes.length) {
-				readBytes = dataInputStream.read(tempBytes);
-				byteBuffer = ByteBuffer.wrap(tempBytes, 0, readBytes);
-				serverSocketChannel.write(byteBuffer);
-				//logger.info(new String(tempBytes, 0, readBytes));
-			}
-			serverSocketChannel.close();
-			SocketCreatedTimeBean socketCreatedTimeBean = new SocketCreatedTimeBean();
-			socketCreatedTimeBean.setSocket(socket);
-			socketCreatedTimeBean.setCreatedDate(new Date());
-			SocketCloseThread.safeList.add(socketCreatedTimeBean);
+			
 			this.socket = null;
-			this.serverSocketChannel = null;
+			this.socketChannel = null;
 			
 		} catch (Exception e) {
 			logger.error("", e);
@@ -73,6 +64,7 @@ public class ProxyThread extends Thread {
 		}
 	}
 	
+	// simple Test
 	public static void main(String[] args) throws Exception {
 		ProxyThread proxyThread = new ProxyThread(null, "POST http://localhost:8080/gwtRequest HTTP/1.1\n" + 
 				"Cookie: JSESSIONID=ufiTOYYptWkzN-SFAcyhkOSTXTSjhteE5UDMUuqN.c02yr22slvcg\n" + 

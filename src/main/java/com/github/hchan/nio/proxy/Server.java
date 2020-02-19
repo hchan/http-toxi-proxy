@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings("unused")
 @Slf4j
 public class Server {
-	public static int MAX_THREAD_COUNT = 300;
+	public static final int MAX_THREAD_COUNT = 300;
 	public static int SERVER_PORT = 28080;
 	public static void main(String[] args) throws IOException {
 
@@ -82,11 +82,11 @@ public class Server {
 							SocketChannel socketChannel = (SocketChannel) myKey.channel();
 							ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
 							socketChannel.read(byteBuffer);
-							String result = new String(byteBuffer.array()).trim();
-							logger.info("Message received: " + result);
+							String requestMsg = new String(byteBuffer.array()).trim();
+							logger.info("Message received: " + requestMsg);
 							byteBuffer.clear();
 							myKey.cancel();
-							ProxyThread proxyThread = new ProxyThread(socketChannel, result);
+							ProxyThread proxyThread = new ProxyThread(socketChannel, requestMsg);
 							executor.execute(proxyThread);
 						} catch (Exception e) {
 							logger.error("", e);
