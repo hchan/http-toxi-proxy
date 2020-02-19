@@ -1,5 +1,7 @@
 package shuaicj.hobby.http.proxy.netty;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -35,6 +37,15 @@ public class HttpProxyRemoteHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+    	
+    	 // byte[] bytes = ByteBufUtil.getBytes((ByteBuf) msg);
+       //logger.info(new String(bytes));
+     	try {
+			Thread.sleep(200);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         clientChannel.writeAndFlush(msg); // just forward
     }
 
@@ -42,6 +53,7 @@ public class HttpProxyRemoteHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) {
         flushAndClose(clientChannel);
     }
+    
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable e) {

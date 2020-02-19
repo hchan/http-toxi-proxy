@@ -34,7 +34,7 @@ public class HttpProxyServer {
     public void start() {
         new Thread(() -> {
             logger.info("HttpProxyServer started on port: {}", port);
-            EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+            EventLoopGroup bossGroup = new NioEventLoopGroup(1000);
             EventLoopGroup workerGroup = new NioEventLoopGroup();
             try {
                 ServerBootstrap b = new ServerBootstrap();
