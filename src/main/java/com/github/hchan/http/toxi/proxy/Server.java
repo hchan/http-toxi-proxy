@@ -2,6 +2,8 @@ package com.github.hchan.http.toxi.proxy;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOptions;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -23,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings("unused")
 @Slf4j
 public class Server {
-	public static final int MAX_THREAD_COUNT = 300;
+	public static final int MAX_THREAD_COUNT = 10;
 	public static int SERVER_PORT = 28080;
 	public static void main(String[] args) throws IOException {
 
@@ -60,21 +62,35 @@ public class Server {
 			Iterator<SelectionKey> selectionKeyIterator = selectionKeySet.iterator();
 
 			while (selectionKeyIterator.hasNext()) {
+				boolean doExtraSleep = false;
+				while (SocketCloseThread.safeList.size() > 130) { // my poor machine can't take more than 150 open sockets
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+					}
+					doExtraSleep = true;
+				}
+				if (doExtraSleep) {
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+					}
+					doExtraSleep = false;
+				}
 				SelectionKey myKey = selectionKeyIterator.next();
 				try {
 					// Tests whether this key's channel is ready to accept a new socket connection
 					if (myKey.isAcceptable()) {
 						try {
-							if (SocketCloseThread.safeList.size() < 150) { // my poor machine can't take more than 150 open sockets
 								SocketChannel socketChannel = serverSocketChannel.accept();
-			
+								socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
 								// Adjusts this channel's blocking mode to false
 								socketChannel.configureBlocking(false);
 			
 								// Operation-set bit for read operations
 								socketChannel.register(selector, SelectionKey.OP_READ);
 								logger.info("Connection Accepted: " + socketChannel.getLocalAddress() + "\n");
-							}
+							//}
 						} catch (Exception e) {
 							logger.error("", e);
 						}
@@ -87,8 +103,8 @@ public class Server {
 							String requestMsg = new String(byteBuffer.array()).trim();
 							logger.info("Message received: " + requestMsg);
 							byteBuffer.clear();
-							ByteBuffer byteBufferHelloWorld = ByteBuffer.wrap("Hello World".getBytes());
-							socketChannel.write(byteBufferHelloWorld);
+							//ByteBuffer byteBufferHelloWorld = ByteBuffer.wrap("Hello World".getBytes());
+							//socketChannel.write(byteBufferHelloWorld);
 							myKey.cancel();
 							ProxyThread proxyThread = new ProxyThread(socketChannel, requestMsg);
 							executor.execute(proxyThread);
