@@ -65,14 +65,16 @@ public class Server {
 					// Tests whether this key's channel is ready to accept a new socket connection
 					if (myKey.isAcceptable()) {
 						try {
-							SocketChannel socketChannel = serverSocketChannel.accept();
-		
-							// Adjusts this channel's blocking mode to false
-							socketChannel.configureBlocking(false);
-		
-							// Operation-set bit for read operations
-							socketChannel.register(selector, SelectionKey.OP_READ);
-							logger.info("Connection Accepted: " + socketChannel.getLocalAddress() + "\n");
+							if (SocketCloseThread.safeList.size() < 150) { // my poor machine can't take more than 150 open sockets
+								SocketChannel socketChannel = serverSocketChannel.accept();
+			
+								// Adjusts this channel's blocking mode to false
+								socketChannel.configureBlocking(false);
+			
+								// Operation-set bit for read operations
+								socketChannel.register(selector, SelectionKey.OP_READ);
+								logger.info("Connection Accepted: " + socketChannel.getLocalAddress() + "\n");
+							}
 						} catch (Exception e) {
 							logger.error("", e);
 						}
@@ -85,9 +87,12 @@ public class Server {
 							String requestMsg = new String(byteBuffer.array()).trim();
 							logger.info("Message received: " + requestMsg);
 							byteBuffer.clear();
+							ByteBuffer byteBufferHelloWorld = ByteBuffer.wrap("Hello World".getBytes());
+							socketChannel.write(byteBufferHelloWorld);
 							myKey.cancel();
 							ProxyThread proxyThread = new ProxyThread(socketChannel, requestMsg);
 							executor.execute(proxyThread);
+							
 						} catch (Exception e) {
 							logger.error("", e);
 						} finally {
@@ -95,8 +100,9 @@ public class Server {
 					} 
 				} catch (Exception e) {
 					logger.error("", e);
+				} finally {
+					selectionKeyIterator.remove();
 				}
-				selectionKeyIterator.remove();
 			}
 		}
 	}
